@@ -8,13 +8,27 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wikicoding.loginexamplecompose.apiService.RetrofitService
 import com.wikicoding.loginexamplecompose.models.Place
+import com.wikicoding.loginexamplecompose.models.Token
 import com.wikicoding.loginexamplecompose.models.User
+import com.wikicoding.loginexamplecompose.repositories.AuthRepository
+import com.wikicoding.loginexamplecompose.repositories.DbGraph
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
-class MainViewModel : ViewModel() {
+class MainViewModel(
+    private val authRepository: AuthRepository = DbGraph.authRepository
+) : ViewModel() {
     var tokenState by mutableStateOf("")
     var placesState = mutableStateOf(listOf<Place>())
+
+    lateinit var getToken: Flow<Token>
+
+    init {
+        viewModelScope.launch {
+            getToken = authRepository.getToken()
+        }
+    }
 
     fun login(user: User, callback: (Boolean) -> Unit) {
         val apiCallService = RetrofitService(tokenState).apiCallService
@@ -24,7 +38,7 @@ class MainViewModel : ViewModel() {
                 val response = apiCallService.login(user)
 
                 tokenState = response.token
-//                tokenManager.saveString(tokenKey, tokenState)
+
                 callback(true)
             } catch (e: HttpException) {
                 Log.e("this error", e.message.toString())
@@ -41,7 +55,6 @@ class MainViewModel : ViewModel() {
                 val response = apiCallService.logout()
                 Log.e("data_inside", response.toString()) // it's working!
 
-//                tokenManager.deleteString(tokenKey, tokenState)
                 tokenState = ""
             } catch (e: HttpException) {
                 Log.e("error", e.message.toString())
